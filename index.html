@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestão de Campanhas</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">GC</span><div><strong>Gestão de Campanhas</strong><small>Protótipo inicial</small></div></div>
+    <nav>
+      <button class="nav-link active" data-view="dashboard">▦ <span>Dashboard</span></button>
+      <button class="nav-link" data-view="campaigns">▤ <span>Campanhas</span></button>
+      <button class="nav-link" data-view="models">◇ <span>Modelos e regras</span></button>
+      <button class="nav-link" data-view="imports">⇧ <span>Importar Excel</span></button>
+    </nav>
+    <div class="sidebar-note">Protótipo local<br>Dados salvos neste navegador</div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><p class="eyebrow">PAINEL DE CONTROLE</p><h1 id="page-title">Dashboard</h1></div><span class="local-tag">● Modo demonstração</span></header>
+    <section id="view-dashboard" class="view">
+      <div class="welcome"><div><h2>Visão geral das campanhas</h2><p>Acompanhe metas, resultados e modelos em um só lugar.</p></div><button class="primary" data-goto="campaigns">＋ Nova campanha</button></div>
+      <div class="metrics">
+        <article class="metric"><span>Campanhas cadastradas</span><strong id="metric-campaigns">0</strong><small>Todos os períodos</small></article>
+        <article class="metric"><span>Participantes nos dados</span><strong id="metric-people">0</strong><small>Identificadores únicos</small></article>
+        <article class="metric"><span>Atingimento médio</span><strong id="metric-attainment">—</strong><small>Campanhas com meta de vendas</small></article>
+        <article class="metric"><span>Modelos disponíveis</span><strong id="metric-models">0</strong><small>Regras reutilizáveis</small></article>
+      </div>
+      <div class="two-col">
+        <article class="panel"><div class="panel-head"><div><h3>Campanhas recentes</h3><p>Resumo das campanhas cadastradas</p></div><button class="text-button" data-goto="campaigns">Ver todas →</button></div><div id="recent-campaigns" class="table-wrap"></div></article>
+        <article class="panel"><div class="panel-head"><div><h3>Atingimento por campanha</h3><p>Percentual de realizado sobre a meta</p></div></div><canvas id="attainment-chart" height="220"></canvas></article>
+      </div>
+      <article class="panel note-panel"><strong>Importante</strong><p>Este protótipo salva os dados no armazenamento local do navegador. Não é ainda um banco compartilhado, não tem login e não deve receber informações confidenciais reais. O arquivo <code>schema.sql</code> é o ponto de partida para conectar ao Supabase.</p></article>
+    </section>
+    <section id="view-campaigns" class="view hidden">
+      <div class="section-intro"><div><h2>Campanhas</h2><p>Crie campanhas escolhendo um modelo de cálculo existente.</p></div></div>
+      <article class="panel">
+        <h3>Cadastrar campanha</h3>
+        <form id="campaign-form" class="form-grid">
+          <label>Nome da campanha<input name="name" required placeholder="Ex.: Campanha de vendas — Outubro"></label>
+          <label>Modelo de cálculo<select name="modelId" id="campaign-model" required></select></label>
+          <label>Início<input type="date" name="start" required></label>
+          <label>Fim<input type="date" name="end" required></label>
+          <label>Região<input name="region" placeholder="Ex.: MG, ES ou Todas"></label>
+          <label>Público<select name="audience"><option>RCA</option><option>Operador</option><option>Gestor</option><option>Coordenador</option><option>Todos</option></select></label>
+          <div class="form-actions"><button class="primary" type="submit">Salvar campanha</button></div>
+        </form>
+      </article>
+      <article class="panel"><div class="panel-head"><div><h3>Campanhas cadastradas</h3><p>Selecione uma campanha para ver ou inserir resultados.</p></div></div><div id="campaign-list" class="table-wrap"></div></article>
+      <article class="panel" id="results-panel"><div class="panel-head"><div><h3 id="results-title">Resultados da campanha</h3><p>Você pode inserir dados manualmente ou importar um Excel.</p></div></div><div id="campaign-results"></div></article>
+    </section>
+    <section id="view-models" class="view hidden">
+      <div class="section-intro"><div><h2>Modelos e regras</h2><p>Os modelos são reutilizáveis. Cada campanha guarda qual modelo e versão utilizou.</p></div></div>
+      <article class="panel"><h3>Criar modelo</h3>
+        <form id="model-form" class="form-grid">
+          <label>Nome do modelo<input name="name" required placeholder="Ex.: Vendas + positivação"></label>
+          <label>Tipo de cálculo<select name="type" required><option value="sales">Meta de vendas</option><option value="sales_positive">Vendas + positivação</option><option value="ranking">Ranking por indicador</option></select></label>
+          <label>Comissão sobre vendas (%)<input name="commission" type="number" min="0" step="0.1" value="10"></label>
+          <label>Bônus extra (R$)<input name="bonus" type="number" min="0" step="0.01" value="0"></label>
+          <label>Meta mínima de positivação (%)<input name="positiveTarget" type="number" min="0" max="100" step="1" value="100"></label>
+          <div class="form-actions"><button class="primary" type="submit">Criar modelo</button></div>
+        </form>
+      </article>
+      <article class="panel"><h3>Modelos existentes</h3><div id="model-list" class="model-grid"></div></article>
+      <article class="panel note-panel"><strong>Como as regras funcionam neste protótipo</strong><p>Meta de vendas calcula atingimento e comissão percentual. Vendas + positivação libera o bônus apenas quando a meta de vendas e o percentual mínimo de positivação são atingidos. Ranking ordena pelo realizado. Regras específicas precisam ser validadas com o regulamento real antes de usar em produção.</p></article>
+    </section>
+    <section id="view-imports" class="view hidden">
+      <div class="section-intro"><div><h2>Importar Excel</h2><p>Importe linhas de resultados associando-as a uma campanha.</p></div></div>
+      <article class="panel">
+        <div class="import-instructions"><strong>Colunas reconhecidas</strong><p>Use cabeçalhos equivalentes a: <code>codigo</code>, <code>nome</code>, <code>venda</code>, <code>meta</code>, <code>positivacao</code>. A positivação deve ser informada como percentual de 0 a 100. Também pode usar o arquivo de exemplo incluído no pacote.</p></div>
+        <form id="import-form" class="form-grid">
+          <label>Campanha<select name="campaignId" id="import-campaign" required></select></label>
+          <label>Arquivo Excel ou CSV<input type="file" name="file" accept=".xlsx,.xls,.csv" required></label>
+          <div class="form-actions"><button class="primary" type="submit">Validar e importar</button></div>
+        </form>
+        <div id="import-message" class="message hidden"></div>
+        <div id="import-preview"></div>
+      </article>
+      <article class="panel"><h3>Histórico de importações</h3><div id="import-history" class="table-wrap"></div></article>
+    </section>
+    <footer>Gestão de Campanhas · Base inicial para desenvolvimento</footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
